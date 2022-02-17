@@ -1,6 +1,7 @@
 package writer
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -12,12 +13,13 @@ import (
 //实现文件的writer
 
 type fileWriter struct {
-	writer       io.Writer //文件指针
-	mu           sync.RWMutex
-	rotationName string
-	ratationMode int
-	pathName     string
-	fileName     string
+	writer           io.Writer //文件指针
+	mu               sync.RWMutex
+	rotationName     string
+	ratationMode     int
+	pathName         string
+	fileName         string
+	rotationCallback func()
 }
 
 // 实现LogWriter的Write()方法
@@ -49,10 +51,20 @@ func (w *fileWriter) UpdateFile() error {
 	RotationName, _ := namerotation.GetRotationName(w.ratationMode)
 	fileName := w.fileName + RotationName
 	newPath := path.Join(w.pathName, fileName)
-	// 创建新的文件 以当前年月日命名
-	filewriter, err := os.OpenFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	//如果path指定了一个已经存在的目录，MkdirAll不做任何操作并返回nil。(读r权限值为4,写权限w值为2,执行权限x值为1)
+	err := os.MkdirAll(w.pathName, 0777)
 	if err != nil {
-		return ErrFileWriter
+		return err
+	}
+	// 创建新的文件 以当前年月日命名.创建文件时要求文件目录必须已经存在
+	filewriter, err := os.OpenFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	fmt.Println(newPath)
+	if err != nil {
+		return err
+	}
+	//注册回调关闭fd,close一个已经关闭的fd只会返回err，不会panic，所以此处不需要保护
+	w.rotationCallback = func() {
+		filewriter.Close()
 	}
 	w.mu.Lock()
 	w.writer = filewriter
@@ -62,6 +74,7 @@ func (w *fileWriter) UpdateFile() error {
 
 func (w *fileWriter) RotationFileName() {
 	if w.needRotetion() {
+		w.rotationCallback()
 		w.UpdateFile()
 	}
 }
