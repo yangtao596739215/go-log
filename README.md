@@ -2,8 +2,12 @@
 go语言的开发的一个基础日志库
 
 
-1.日志异步打印，不阻塞主流程
-2.单goroutine进行日志刷盘，避免锁操作
-3.对日志刷盘增加缓存，在io次数和刷盘实时性之间找到平衡
-4.支持定义多writer，简易实现一份日志多处存储
-5.支持日志文件按时间切割
+
+#### 通用Logger实现，实现日志级别的区分
+
+#### Logger与Writer解耦，方便自定义writer，将日志送到不同的地方
+
+#### 实现三种writer
+1.fileWriter                基本文件的writer，支持文件名按照时间切分
+2.bufferedFileWriter        带有buffer的writer，减少磁盘的io次数
+3.chanBufferedFileWriter    带有chan的writer，优化了buffer的锁
