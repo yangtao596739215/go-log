@@ -38,8 +38,8 @@ type Logger struct {
 }
 
 // 构造方法
-func NewLogger(name string) Logger {
-	l := Logger{name: name}
+func NewLogger(name string) *Logger {
+	l := &Logger{name: name}
 	if name == "" {
 		l.name = DEFAULT_LOGGER_NAME
 	}
