@@ -1,4 +1,4 @@
-package namerotation
+package filerotation
 
 import (
 	"errors"
@@ -20,6 +20,17 @@ func GetRotationName(mode int) (string, error) {
 		return now.Format("20060102") + ".log", nil
 	case ROTATION_BY_HOUR:
 		return now.Format("2006010210") + ".log", nil
+	default:
+		return "", ErrNameRotation
+	}
+}
+
+func GetRotationNameByTime(t time.Time, mode int) (string, error) {
+	switch mode {
+	case ROTATION_BY_DAY:
+		return t.Format("20060102") + ".log", nil
+	case ROTATION_BY_HOUR:
+		return t.Format("2006010210") + ".log", nil
 	default:
 		return "", ErrNameRotation
 	}
