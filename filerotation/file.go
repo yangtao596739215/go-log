@@ -1,12 +1,16 @@
 package filerotation
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
-	"sync"
 	"time"
 )
+
+type FileManager interface {
+	GetFile() *os.File
+}
 
 type fileManager struct {
 	curFile     *os.File
@@ -14,16 +18,11 @@ type fileManager struct {
 	filePath    string
 	rotationMod int
 	saveTime    time.Duration
-	mu          sync.RWMutex
 }
 
-var manager *fileManager
-
 //对外暴露方法，获取底层保存的文件,之后更新的时候进行指针替换
-func GetFile() *os.File {
-	manager.mu.RLock()
-	defer manager.mu.RUnlock()
-	return manager.curFile
+func (m *fileManager) GetFile() *os.File {
+	return m.curFile
 }
 
 type FileSaveTime time.Duration
@@ -34,8 +33,8 @@ const (
 	FileSaveThreeDay = 72 * time.Hour
 )
 
-func InitFileManager(filename, filepath string, rotationmod int, savetime time.Duration) error {
-	manager = &fileManager{
+func NewFileManager(filename, filepath string, rotationmod int, savetime time.Duration) (FileManager, error) {
+	manager := &fileManager{
 		fileName:    filename,
 		filePath:    filepath,
 		rotationMod: rotationmod,
@@ -43,11 +42,11 @@ func InitFileManager(filename, filepath string, rotationmod int, savetime time.D
 	}
 	err := manager.initFile()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	go manager.deleteExpiredFile()
 	go manager.updateFile()
-	return nil
+	return manager, nil
 }
 
 func (m *fileManager) initFile() error {
@@ -55,7 +54,7 @@ func (m *fileManager) initFile() error {
 	fileName := m.fileName + RotationName
 	newPath := path.Join(m.filePath, fileName)
 	//如果path指定了一个已经存在的目录，MkdirAll不做任何操作并返回nil。(读r权限值为4,写权限w值为2,执行权限x值为1)
-	err := os.MkdirAll(newPath, 0777)
+	err := os.MkdirAll(m.filePath, 0777)
 	if err != nil {
 		return err
 	}
@@ -64,25 +63,22 @@ func (m *fileManager) initFile() error {
 	if err != nil {
 		return err
 	}
-	//加锁替换文件
-	manager.mu.Lock()
-	manager.curFile = tmpFile
-	manager.mu.Unlock()
+	//替换文件
+	m.curFile = tmpFile
 	return nil
 }
 
 //读取对应目录下的文件，删除过期的文件
 func (m *fileManager) deleteExpiredFile() {
 	for {
-		//每小时执行一次，去删除一天前的文件
-		time.Sleep(1 * time.Hour)
+		//sleep放后面，每次启动的时候，先把过期的文件删除了
 		deletedName, err := GetRotationNameByTime(time.Now().Add(-m.saveTime), m.rotationMod)
 		if err != nil {
 			m.curFile.WriteString("getrotationName failed:" + err.Error())
 			return
 		}
 
-		rd, err := ioutil.ReadDir(manager.filePath)
+		rd, err := ioutil.ReadDir(m.filePath)
 		if err != nil {
 			m.curFile.WriteString("read dir failed:" + err.Error())
 			return
@@ -90,23 +86,25 @@ func (m *fileManager) deleteExpiredFile() {
 
 		for _, fi := range rd {
 			if !fi.IsDir() {
+				fmt.Println(fi.Name())
 				//按照文件名的字符串大小比较
 				if fi.Name() < deletedName {
 					os.Remove(fi.Name())
 				}
 			}
 		}
+
+		//每小时执行一次，去删除一天前的文件
+		time.Sleep(1 * time.Hour)
 	}
 }
 
 //根据循环模式，每天或每小时执行一次
 func (m *fileManager) updateFile() {
 	for {
-		//todo
 		m.initFile()
-		//每小时执行一次
 		now := time.Now()
-		// 计算下一次执行的时间
+		// 计算下一次执行的时间(整hour或整day)
 		var next time.Time
 		switch m.rotationMod {
 		case ROTATION_BY_DAY:

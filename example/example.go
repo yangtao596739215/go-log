@@ -1,7 +1,7 @@
 package main
 
 import (
-	logg "github.com/yangtao596739215/go-log"
+	golog "github.com/yangtao596739215/go-log"
 	"github.com/yangtao596739215/go-log/logger"
 )
 
@@ -15,9 +15,9 @@ func main() {
 
 	bl.WARNING("xxx")
 
-	logg.GlobalLogger.INFO(bl.Flush())
+	golog.GlobalLogger.INFO(bl.Flush())
 
 	//case2 一次打印一行，每行都带有文件信息
-	logg.GlobalLogger.INFO("xxxx") //全局一个对象，底层是chan，可以并发写
+	golog.GlobalLogger.INFO("xxxx") //全局一个对象，底层是chan，可以并发写
 
 }

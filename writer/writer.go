@@ -3,9 +3,9 @@ package writer
 import "errors"
 
 const (
-	FileFlushSeconds = 1
-	FileBufferSize   = 4096
-	ChanBufferSize   = 10000
+	BufferFlushSeconds = 1
+	FileBufferSize     = 4096
+	ChanBufferSize     = 10000
 )
 
 var ErrFileWriter = errors.New("create fileWriter err")
