@@ -6,7 +6,7 @@ import (
 )
 
 func Test_chanBufferedFileWriter_writeAndFlushBuffer(t *testing.T) {
-	cbfw, err := NewChanBufferedFileWriter(1, "./log", "test")
+	cbfw, err := NewChanBufferedFileWriter(1, "./log", "test", 72*time.Hour)
 	if err != nil {
 		t.Error(err)
 	}

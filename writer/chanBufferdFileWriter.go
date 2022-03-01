@@ -14,9 +14,9 @@ type chanBufferedFileWriter struct {
 	bufferedFileWriter
 }
 
-func NewChanBufferedFileWriter(mode int, pathName, fileName string) (*chanBufferedFileWriter, error) {
+func NewChanBufferedFileWriter(mode int, pathName, fileName string, saveTime time.Duration) (*chanBufferedFileWriter, error) {
 	w := &chanBufferedFileWriter{}
-	m, err := filerotation.NewFileManager(fileName, pathName, mode, 72*time.Hour)
+	m, err := filerotation.NewFileManager(fileName, pathName, mode, saveTime)
 	if err != nil {
 		fmt.Println("new manager err:" + err.Error())
 		return nil, err

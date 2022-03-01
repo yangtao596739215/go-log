@@ -1,23 +1,36 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
 	golog "github.com/yangtao596739215/go-log"
-	"github.com/yangtao596739215/go-log/logger"
+	"github.com/yangtao596739215/go-log/writer"
 )
 
 func main() {
-
-	//case1  中间不收到输入换行的话，只打印一行日志。日志先放入buffer，然后再通过chan写文件。日志中的文件信息只有当前这个函数的
-	bl, err := logger.NewBufferdLogger(3) //每个请求一个对象
+	//使用默认的filewriter
+	l, err := golog.NewLogger()
 	if err != nil {
-		panic("logger init err")
+		fmt.Println("err")
+
 	}
+	l.INFO("hahaha") //此处可以把logger传入业务方法中使用
+	l.Flush()
+	time.Sleep(3 * time.Second)
 
-	bl.WARNING("xxx")
+	//自定义filewriter
+	cbfw, err := writer.NewChanBufferedFileWriter(1, "./log", "custom", 72*time.Hour)
+	if err != nil {
+		fmt.Println("err")
+	}
+	golog.SetWriterList([]writer.LogWriter{cbfw})
+	l2, err := golog.NewLogger()
+	if err != nil {
+		fmt.Println("err")
 
-	golog.GlobalLogger.INFO(bl.Flush())
-
-	//case2 一次打印一行，每行都带有文件信息
-	golog.GlobalLogger.INFO("xxxx") //全局一个对象，底层是chan，可以并发写
-
+	}
+	l2.INFO("l2l2l2l2") //此处可以把logger传入业务方法中使用
+	l2.Flush()
+	time.Sleep(3 * time.Second)
 }

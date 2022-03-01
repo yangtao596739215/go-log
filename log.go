@@ -1,27 +1,36 @@
 package golog
 
 import (
-	"fmt"
+	"errors"
+	"time"
 
 	"github.com/yangtao596739215/go-log/logger"
 	"github.com/yangtao596739215/go-log/writer"
 )
 
-var GlobalWriterList []writer.LogWriter
+var ErrCreateLogger = errors.New("create logger error")
 
-var GlobalLogger logger.Log
+var writerList []writer.LogWriter
 
-func init() {
-	l := logger.NewLogger("Defult")
-	writer, err := writer.NewChanBufferedFileWriter(0, "./log", "logger")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	l.RegisteWriter(writer)
-	GlobalLogger = l
+func SetWriterList(wList []writer.LogWriter) {
+	writerList = wList
 }
 
-func SetLogger(l logger.Log) {
-	GlobalLogger = l
+func init() {
+	w, err := writer.NewChanBufferedFileWriter(0, "./log", "logger", 72*time.Hour)
+	if err != nil {
+		panic("init log failed")
+	}
+	writerList = append(writerList, w)
+}
+
+func NewLogger() (*logger.BufferLogger, error) {
+	l, err := logger.NewBufferLogger(0, 0)
+	if err != nil {
+		return nil, ErrCreateLogger
+	}
+	for _, v := range writerList {
+		l.RegisteWriter(v)
+	}
+	return l, nil
 }

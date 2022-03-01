@@ -1,7 +1,6 @@
 package filerotation
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -73,6 +72,7 @@ func (m *fileManager) deleteExpiredFile() {
 	for {
 		//sleep放后面，每次启动的时候，先把过期的文件删除了
 		deletedName, err := GetRotationNameByTime(time.Now().Add(-m.saveTime), m.rotationMod)
+		deletedName = m.fileName + deletedName
 		if err != nil {
 			m.curFile.WriteString("getrotationName failed:" + err.Error())
 			return
@@ -85,11 +85,12 @@ func (m *fileManager) deleteExpiredFile() {
 		}
 
 		for _, fi := range rd {
-			if !fi.IsDir() {
-				fmt.Println(fi.Name())
-				//按照文件名的字符串大小比较
-				if fi.Name() < deletedName {
-					os.Remove(fi.Name())
+			//按照文件名的字符串大小比较
+			if !fi.IsDir() && fi.Name() < deletedName {
+				deletedfile := path.Join(m.filePath, fi.Name())
+				err = os.Remove(deletedfile)
+				if err != nil {
+					m.curFile.WriteString("delete file failed:" + err.Error())
 				}
 			}
 		}
